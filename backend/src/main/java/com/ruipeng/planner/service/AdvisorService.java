@@ -38,6 +38,10 @@ public class AdvisorService {
 
     public List<AdvisorProfileDto> getAllAdvisors() {
         List<Advisor> allAdvisors = advisorRepository.findAllByOrderByRatingDesc();
+        return setAllAdvisorsProfileDto(allAdvisors);
+    }
+
+    protected List<AdvisorProfileDto> setAllAdvisorsProfileDto(List<Advisor> allAdvisors) {
         List<AdvisorProfileDto>result = new ArrayList<>();
         for(Advisor advisor : allAdvisors) {
             AdvisorProfileDto advisorProfileDto = new AdvisorProfileDto();
@@ -51,7 +55,6 @@ public class AdvisorService {
             advisorProfileDto.setSpecialties(advisor.getSpecialties());
 
             result.add(advisorProfileDto);
-
 
         }
         return result;
