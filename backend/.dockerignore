@@ -1,0 +1,27 @@
+# 源代码（本地构建后不需要）
+src/
+.mvn/
+mvnw
+mvnw.cmd
+pom.xml
+
+# 开发文件
+.git
+.gitignore
+.env*
+.idea/
+*.iml
+.vscode/
+*.md
+Dockerfile
+.dockerignore
+
+# 运行时文件
+tokens/
+uploads/
+logs/
+*.log
+
+# 只保留target/目录中的jar文件
+target/*
+!target/*.jar

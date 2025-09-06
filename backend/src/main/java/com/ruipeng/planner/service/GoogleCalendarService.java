@@ -14,12 +14,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-
+import org.springframework.util.StringUtils;
 
 
 import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.Arrays;
-
+import java.util.List;
 
 
 @Service
@@ -88,7 +89,7 @@ public class GoogleCalendarService {
     }
 
     /**
-     * 🎯 构建带真实Google Meet的事件
+     * 🎯 构建Google Meet事件
      */
     private Event buildEventWithGoogleMeet(Appointment appointment) {
         Event event = new Event()
@@ -98,7 +99,7 @@ public class GoogleCalendarService {
         // 设置时间
         setEventDateTime(event, appointment);
 
-        // 🔑 关键：配置Google Meet会议
+        // 配置Google Meet会议
         ConferenceData conferenceData = new ConferenceData();
         conferenceData.setCreateRequest(new CreateConferenceRequest()
                 .setRequestId(generateConferenceRequestId(appointment))
@@ -115,13 +116,25 @@ public class GoogleCalendarService {
         return event;
     }
 
-    // 保留所有现有的辅助方法
+
     private void addEventAttendees(Event event, Appointment appointment) {
-        // ... 现有实现保持不变
+        List<EventAttendee> attendees = new ArrayList<>();
+        if (appointment.getUser() != null &&
+                StringUtils.hasText(appointment.getUser().getEmail())) {
+            EventAttendee userAttendee = new EventAttendee()
+                    .setEmail(appointment.getUser().getEmail())
+                    .setResponseStatus("accepted");
+            attendees.add(userAttendee);
+            log.info("Added user attendee: {}", appointment.getUser().getEmail());
+        }
+
+        if (!attendees.isEmpty()) {
+            event.setAttendees(attendees);
+        }
     }
 
+
     private String extractMeetLinkFromEvent(Event event) {
-        // ... 现有实现保持不变，但移除降级逻辑
         if (event.getConferenceData() != null &&
                 event.getConferenceData().getEntryPoints() != null) {
 

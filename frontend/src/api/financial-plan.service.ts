@@ -1,4 +1,4 @@
-// src/api/financial-plan.service.ts
+
 import { FinancialPlan, FinancialPlanRequest } from '@/types';
 import axiosInstance from './axios';
 

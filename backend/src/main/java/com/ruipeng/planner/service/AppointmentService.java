@@ -38,12 +38,22 @@ public class AppointmentService {
     private GoogleOAuthService googleOAuthService;
 
     @Autowired
-    public AppointmentService(AppointmentRepository appointmentRepository, UserRepository userRepository, AdvisorRepository advisorRepository, FinancialPlanRepository financialPlanRepository, EmailService emailService) {
+    public AppointmentService(AppointmentRepository appointmentRepository,
+                              UserRepository userRepository,
+                              AdvisorRepository advisorRepository,
+                              FinancialPlanRepository financialPlanRepository,
+                              EmailService emailService,
+                              GoogleOAuthService googleOAuthService,
+                              GoogleCalendarService googleCalendarService,
+                              EmailInvitationService emailInvitationService) {
         this.appointmentRepository = appointmentRepository;
         this.userRepository = userRepository;
         this.advisorRepository = advisorRepository;
         this.financialPlanRepository = financialPlanRepository;
         this.emailService = emailService;
+        this.googleOAuthService = googleOAuthService;
+        this.googleCalendarService = googleCalendarService;
+        this.emailInvitationService = emailInvitationService;
     }
     Logger log = LoggerFactory.getLogger(AppointmentService.class);
 
@@ -101,34 +111,70 @@ public class AppointmentService {
         }
 
         appointment.setUserNotes(dto.getUserNotes());
-
         // Save appointment
         Appointment savedAppointment = appointmentRepository.save(appointment);
 
-        // 所有预约都是免费的，直接生成会议链接
-        String meetingLink = generateMeetingLink(savedAppointment);
-        savedAppointment.setMeetingLink(meetingLink);
-        savedAppointment = appointmentRepository.save(savedAppointment);
         try {
             // 检查用户OAuth状态
             if (googleOAuthService.isUserAuthorized(userId)) {
-                // 用户已授权，直接生成会议链接
-                generateMeetingLink(savedAppointment.getId(), userId);
+                // 直接传递 savedAppointment 对象，避免重新查询
+                generateMeetingLink(savedAppointment, userId);
             } else {
-                // 用户未授权，需要前端处理OAuth流程
                 log.info("User {} needs OAuth authorization for appointment {}",
                         userId, savedAppointment.getId());
-                // 前端会检测到这种情况并触发OAuth流程
             }
+        } catch (SecurityException e) {
+            throw e;
         } catch (Exception e) {
-            log.error("Failed to generate meeting link during appointment creation: {}", e.getMessage());
-            // 不影响预约创建，会议链接可以稍后生成
+            log.error("Failed to generate meeting link for appointment {}: {}",
+                    savedAppointment.getId(), e.getMessage(), e);
+            throw new RuntimeException("Failed to generate meeting link", e);
         }
 
         AppointmentCreateDto result = new AppointmentCreateDto();
         result.setId(savedAppointment.getId());
-
         return result;
+    }
+
+    // 新增一个重载方法
+    @Transactional
+    public void generateMeetingLink(Appointment appointment, Long userId) {
+        try {
+            // 验证用户权限
+            if (!appointment.getUser().getId().equals(userId)) {
+                throw new SecurityException("User not authorized to access this appointment");
+            }
+
+            // 检查是否已经有会议链接
+            if (appointment.getMeetingLink() != null && !appointment.getMeetingLink().isEmpty()) {
+                log.info("Meeting link already exists for appointment {}", appointment.getId());
+                return;
+            }
+
+            // 🎯 统一调用:自动选择最佳认证方式
+            String meetingLink = googleCalendarService.createAppointmentEvent(appointment, userId);
+
+            // 更新预约信息
+            appointment.setMeetingLink(meetingLink);
+            appointmentRepository.save(appointment);
+
+            // 发送包含会议链接的邮件通知
+            if (meetingLink != null) {
+                emailInvitationService.sendMeetInvitation(appointment, meetingLink);
+            }
+
+            log.info("Meeting link generated successfully for appointment {}: {}",
+                    appointment.getId(), meetingLink);
+
+        } catch (SecurityException e) {
+            log.error("Failed to generate meeting link for appointment {}: {}",
+                    appointment.getId(), e.getMessage());
+            throw e;
+        } catch (Exception e) {
+            log.error("Failed to generate meeting link for appointment {}: {}",
+                    appointment.getId(), e.getMessage(), e);
+            throw new RuntimeException("Failed to generate meeting link", e);
+        }
     }
 
     @Transactional
@@ -158,19 +204,6 @@ public class AppointmentService {
         return appointmentRepository.save(appointment);
     }
 
-    @Transactional
-    public void handlePaymentSuccess(String paymentIntentId) {
-        // Find appointment by payment intent ID and confirm it
-        // This is a simplified implementation
-        // In a real application, you would have a field to store the payment intent ID
-        // and use it to look up the appointment
-
-        // For demonstration purposes:
-        // Appointment appointment = appointmentRepository.findByPaymentIntentId(paymentIntentId);
-        // if (appointment != null) {
-        //     updateAppointmentStatus(appointment.getId(), AppointmentStatus.CONFIRMED);
-        // }
-    }
 
     private String generateMeetingLink(Appointment appointment) {
         // In a real application, this would integrate with Zoom, Google Meet, or another video conferencing API
@@ -198,7 +231,7 @@ public class AppointmentService {
                 return;
             }
 
-            // 🎯 统一调用：自动选择最佳认证方式
+            // 🎯 统一调用:自动选择最佳认证方式
             String meetingLink = googleCalendarService.createAppointmentEvent(appointment, userId);
 
             // 更新预约信息
@@ -212,13 +245,15 @@ public class AppointmentService {
 
             log.info("Meeting link generated successfully for appointment {}: {}", appointmentId, meetingLink);
 
+        } catch (SecurityException e) {
+            // SecurityException 需要重新抛出，不包装
+            log.error("Failed to generate meeting link for appointment {}: {}", appointmentId, e.getMessage());
+            throw e;
         } catch (Exception e) {
-            log.error("Failed to generate meeting link for appointment {}: {}",
-                    appointmentId, e.getMessage(), e);
+            log.error("Failed to generate meeting link for appointment {}: {}", appointmentId, e.getMessage(), e);
             throw new RuntimeException("Failed to generate meeting link", e);
         }
     }
-
     /**
      * OAuth授权后的回调处理
      */

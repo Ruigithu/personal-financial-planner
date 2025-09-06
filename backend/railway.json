@@ -1,0 +1,9 @@
+{
+  "build": {
+    "builder": "DOCKERFILE"
+  },
+  "deploy": {
+    "healthcheckPath": "/actuator/health",
+    "healthcheckTimeout": 100
+  }
+}

@@ -7,6 +7,7 @@ import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
@@ -21,11 +22,12 @@ import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.Map;
 
+
+@Slf4j
 @Service
 public class EmailService {
 
     private JavaMailSender mailSender;
-
     private final TemplateEngine templateEngine;
 
     @Autowired
@@ -120,9 +122,15 @@ public class EmailService {
             helper.setText(htmlContent, true);
 
             mailSender.send(message);
+
+            log.info("Email sent successfully to {} with template {}", to, template);
+
         } catch (MessagingException e) {
             // Log the error and continue execution
-            e.printStackTrace();
+            log.error("Failed to send email to {}: {}", to, e.getMessage(), e);
+        } catch (Exception e) {
+            // Catch all other exceptions (including template engine exceptions)
+            log.error("Unexpected error sending email to {} with template {}: {}", to, template, e.getMessage(), e);
         }
     }
 }

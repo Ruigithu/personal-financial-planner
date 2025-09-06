@@ -1,0 +1,14 @@
+com\ruipeng\planner\repository\AdvisorRepositoryTest.class
+com\ruipeng\planner\service\EmailInvitationServiceTest.class
+com\ruipeng\planner\service\UserProfileServiceTest.class
+com\ruipeng\planner\PersonalFinancialPlannerApplicationTests.class
+com\ruipeng\planner\service\FinancialPlanServiceTest.class
+com\ruipeng\planner\service\AppointmentServiceTest.class
+com\ruipeng\planner\service\GoogleAIServiceTest.class
+com\ruipeng\planner\service\AuthServiceTest.class
+com\ruipeng\planner\service\AdvisorServiceTest.class
+com\ruipeng\planner\service\EmailServiceTest.class
+com\ruipeng\planner\service\GoogleOAuthServiceTest.class
+com\ruipeng\planner\service\GoogleCalendarServiceTest.class
+com\ruipeng\planner\service\UserServiceTest.class
+com\ruipeng\planner\service\UserProfileServiceTest$1.class

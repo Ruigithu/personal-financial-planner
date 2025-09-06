@@ -1,5 +1,4 @@
-# 🚨 重要：Google Cloud和API密钥
-**/service-account-key.json
+
 **/financial-planner.json
 **/*-key.json
 **/*-credentials.json
@@ -14,21 +13,17 @@ tokens/
 **/StoredCredential
 **/.credentials/
 
-# 🔐 其他常见的敏感文件模式
+# 敏感文件模式
 **/*secret*
 **/*password*
 **/*auth*
 **/client_secret*.json
-**/google-services.json
-**/GoogleService-Info.plist
-**/.env
+.env
 **/.env.*
 
 # Spring Boot配置
 application.properties
 application-*.properties
-application.yml
-application-*.yml
 
 # 但保留示例文件
 !application.properties.example
@@ -36,8 +31,8 @@ application-*.yml
 !*-example.yml
 
 # Maven构建
-backend/target/
-target/
+#backend/target/
+#target/
 pom.xml.tag
 pom.xml.releaseBackup
 pom.xml.versionsBackup
@@ -48,10 +43,6 @@ buildNumber.properties
 .mvn/timing.properties
 .mvn/wrapper/maven-wrapper.jar
 
-# Gradle构建（以防万一）
-.gradle/
-build/
-!gradle/wrapper/gradle-wrapper.jar
 
 # IDE文件
 .idea/

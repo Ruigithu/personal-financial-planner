@@ -10,10 +10,13 @@ import com.google.api.client.json.gson.GsonFactory;
 import com.google.api.client.util.store.FileDataStoreFactory;
 
 import com.google.api.services.calendar.CalendarScopes;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.util.StringUtils;
 
 import java.io.File;
 import java.io.IOException;
@@ -26,37 +29,75 @@ import java.util.List;
 @Configuration
 public class GoogleCalendarConfig {
 
-    @Value("${google.calendar.application-name}")
+    // Calendar 配置
+    @Value("${google.calendar.application-name:Personal Financial Planner}")
     private String applicationName;
 
-    @Value("${google.calendar.calendar-id}")
+    @Value("${google.calendar.calendar-id:primary}")
     private String calendarId;
 
-    @Value("${google.calendar.timezone}")
+    @Value("${google.calendar.timezone:Europe/Dublin}")
     private String timeZone;
+
+    // OAuth 配置
+    @Value("${google.oauth.client-id:#{null}}")
+    private String clientId;
+
+    @Value("${google.oauth.client-secret:#{null}}")
+    private String clientSecret;
 
     @Value("${google.oauth.redirect-uri:http://localhost:8080/api/oauth/callback}")
     private String redirectUri;
 
+    // 常量
     private static final JsonFactory JSON_FACTORY = GsonFactory.getDefaultInstance();
     private static final List<String> SCOPES = Collections.singletonList(CalendarScopes.CALENDAR);
     private static final String TOKENS_DIRECTORY_PATH = "tokens";
+    private static final Logger log = LoggerFactory.getLogger(GoogleCalendarConfig.class);
 
     @Bean
     public GoogleAuthorizationCodeFlow googleAuthorizationCodeFlow() throws IOException, GeneralSecurityException {
         NetHttpTransport httpTransport = GoogleNetHttpTransport.newTrustedTransport();
 
-        // 加载客户端密钥
-        ClassPathResource resource = new ClassPathResource("financial-planner.json");
-        InputStream in = resource.getInputStream();
-        GoogleClientSecrets clientSecrets = GoogleClientSecrets.load(JSON_FACTORY, new InputStreamReader(in));
+        // 优先使用环境变量
+        if (StringUtils.hasText(clientId) && StringUtils.hasText(clientSecret)) {
+            log.info("Loading Google OAuth from environment variables");
+            return new GoogleAuthorizationCodeFlow.Builder(
+                    httpTransport,
+                    JSON_FACTORY,
+                    clientId,
+                    clientSecret,
+                    SCOPES)
+                    .setDataStoreFactory(new FileDataStoreFactory(new File(TOKENS_DIRECTORY_PATH)))
+                    .setAccessType("offline")
+                    .build();
+        }
 
-        // 构建授权流程
-        return new GoogleAuthorizationCodeFlow.Builder(
-                httpTransport, JSON_FACTORY, clientSecrets, SCOPES)
-                .setDataStoreFactory(new FileDataStoreFactory(new File(TOKENS_DIRECTORY_PATH)))
-                .setAccessType("offline")
-                .build();
+        // 备用：从文件读取
+        log.info("Loading Google OAuth from file");
+        return loadFromFile(httpTransport);
+    }
+
+    private GoogleAuthorizationCodeFlow loadFromFile(NetHttpTransport httpTransport) throws IOException {
+        ClassPathResource resource = new ClassPathResource("financial-planner.json");
+
+        if (!resource.exists()) {
+            throw new IllegalStateException(
+                    "No Google OAuth credentials found. Please either:\n" +
+                            "1. Set environment variables: GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET\n" +
+                            "2. Provide financial-planner.json file in the classpath"
+            );
+        }
+
+        try (InputStream in = resource.getInputStream()) {
+            GoogleClientSecrets clientSecrets = GoogleClientSecrets.load(JSON_FACTORY, new InputStreamReader(in));
+
+            return new GoogleAuthorizationCodeFlow.Builder(
+                    httpTransport, JSON_FACTORY, clientSecrets, SCOPES)
+                    .setDataStoreFactory(new FileDataStoreFactory(new File(TOKENS_DIRECTORY_PATH)))
+                    .setAccessType("offline")
+                    .build();
+        }
     }
 
     // Getters

@@ -71,7 +71,6 @@ public class FinancialPlanController {
     @PreAuthorize("hasRole('USER')")
     public ResponseEntity<?> generatePlan(@Valid @RequestBody FinancialPlanRequest request) {
         Long userId = getCurrentUserId();
-        System.out.println("Plan的名字是"+request.getPlanName());
         try {
             FinancialPlan plan = financialPlanService.generateFinancialPlan(userId, request);
             System.out.println("id:"+plan.getId());

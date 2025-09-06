@@ -43,6 +43,10 @@ public class UserProfileDTO {
         this.monthlySavings = monthlySavings;
     }
 
+    public UserProfileDTO() {
+
+    }
+
 
     public String getFullName() {
         return fullName;
