@@ -2,9 +2,6 @@ FROM eclipse-temurin:17-jre-alpine
 
 WORKDIR /app
 
-# 安装健康检查工具
-RUN apk add --no-cache curl
-
 # 复制构建好的JAR文件
 COPY target/*.jar app.jar
 
