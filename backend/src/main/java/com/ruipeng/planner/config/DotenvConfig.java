@@ -14,7 +14,10 @@ public class DotenvConfig {
 
     @Bean
     public Dotenv dotenv() {
-        return Dotenv.configure().load();
+        return Dotenv.configure()
+                .directory(".")
+                .ignoreIfMissing()
+                .load();
     }
 
     @Bean

@@ -8,5 +8,6 @@ COPY target/*.jar app.jar
 # 创建必要目录
 RUN mkdir -p tokens uploads
 
+
 # 启动应用
-CMD ["java", "-Dserver.port=${PORT:-8080}", "-jar", "app.jar"]
+CMD ["sh", "-c", "java -Dserver.port=${PORT:-8080} -jar app.jar"]
